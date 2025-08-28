@@ -13,10 +13,12 @@ function Header() {
     }
 
     return (
-        <div className="flex p-4 items-center justify-between bg-secondary shadow-sm cursor-pointer">
+        <div
+            className="flex p-4 items-center justify-between shadow-sm cursor-pointer"
+            style={{ backgroundColor: '#e4c8ff' }}
+            >
             <div className="flex flex-row" onClick={BackToHome}>
-                <Image src={'/logo.svg'} width={100} height={85} alt="logo" />
-                <div className="text-2xl p-4 font-bold">hirely</div>
+                <Image src={'/hirely_simple.svg'} width={300} height={200} alt="logo" />
             </div>
             <ul className="flex gap-6 max-md:hidden">
                 <li
@@ -49,7 +51,9 @@ function Header() {
                     How it works
                 </li>
             </ul>
-            <UserButton />
+            <div className="transition-transform duration-200 hover:scale-110">
+                <UserButton />
+            </div>
         </div>
     )
 }

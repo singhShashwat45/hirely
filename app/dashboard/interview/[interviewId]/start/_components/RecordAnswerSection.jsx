@@ -64,9 +64,24 @@ const RecordAnswerSection = ({mockInterviewQuestions, activeQuestionIndex, inter
         - "feedback": short feedback (3–5 lines).
         No extra text, no explanations, no markdown.
         `;
+        const sendWithRetry = async (prompt, retries = 3, delay = 2000) => {
+        for (let i = 0; i < retries; i++) {
+            try {
+            const result = await chatSession.sendMessage(prompt);
+            return result;
+            } catch (err) {
+            if (err.message.includes("503") && i < retries - 1) {
+                console.warn(`Server busy, retrying in ${delay}ms...`);
+                await new Promise(res => setTimeout(res, delay));
+            } else {
+                throw err;
+            }
+            }
+        }
+        };
 
         try {
-            const result = await chatSession.sendMessage(feedbackPrompt);
+            const result = await sendWithRetry(feedbackPrompt);
 
             let mockJsonResponse = await result.response.text();
             mockJsonResponse = mockJsonResponse
