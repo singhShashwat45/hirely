@@ -37,7 +37,7 @@ const RecordAnswerSection = ({mockInterviewQuestions, activeQuestionIndex, inter
     },[results])
 
     useEffect(()=>{
-        if(!isRecording && userAnswer.length > 10){
+        if(!isRecording && userAnswer.length > 0){
             UpdateUserAnswer();
         }
     },[userAnswer]);
@@ -52,37 +52,64 @@ const RecordAnswerSection = ({mockInterviewQuestions, activeQuestionIndex, inter
         }
     }
     
-    const UpdateUserAnswer = async()=>{
+    const UpdateUserAnswer = async () => {
         console.log(userAnswer);
-        setLoading(true); 
-        const feedbackPrompt = "Question:"+ mockInterviewQuestions[activeQuestionIndex]?.Question + 
-            ", User Answer: " + userAnswer + "Keeping in mind the given question and answer for a interview, give us rating for the answer and feedback as area of improvement, if any in just 3-5 lines to improve it. Also the rating should be a number out of 10. If the rating you feel is 5 out of 10, send the response in the formate 5/10.Give the response in JSON format with rating field and feedback field";
+        setLoading(true);
 
+        const feedbackPrompt = `You are an interview evaluator.
+        Question: ${mockInterviewQuestions[activeQuestionIndex]?.Question}
+        User Answer: ${userAnswer}
+        Return ONLY a valid JSON object with two fields: 
+        - "rating": a string like "7/10"
+        - "feedback": short feedback (3–5 lines).
+        No extra text, no explanations, no markdown.
+        `;
+
+        try {
             const result = await chatSession.sendMessage(feedbackPrompt);
-            const mockJsonResponse = (result.response.text()).replace('```json', '').replace('```', '');
-            console.log(mockJsonResponse);
-            const JsonFeedbackResp = JSON.parse(mockJsonResponse);
 
-            const resp = await db.insert(UserAnswer)
-            .values({
-                question:mockInterviewQuestions[activeQuestionIndex]?.Question,
-                mockIdRef:interviewData?.mockId,
-                correctAns:mockInterviewQuestions[activeQuestionIndex]?.Answer,
-                userAns: userAnswer,
-                feedback:JsonFeedbackResp?.feedback,
-                rating:JsonFeedbackResp?.rating,
-                userEmail: user?.primaryEmailAddress?.emailAddress,
-                createdAt: moment().format('DD-MM-YYYY')
-            })
+            let mockJsonResponse = await result.response.text();
+            mockJsonResponse = mockJsonResponse
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
 
-            if(resp){
-                toast.success("Answer saved successfully");
-                setUserAnswer('');
-                setResults([]);
-            }
-            setResults([]);
+            console.log("Raw AI response:", mockJsonResponse);
+
+            let JsonFeedbackResp;
+            try {
+            JsonFeedbackResp = JSON.parse(mockJsonResponse);
+            } catch (err) {
+            console.error("JSON parse error:", err, "Response was:", mockJsonResponse);
+            toast.error("AI feedback not in JSON format, please retry.");
             setLoading(false);
-    }
+            return;
+            }
+
+            const resp = await db.insert(UserAnswer).values({
+            question: mockInterviewQuestions[activeQuestionIndex]?.Question,
+            mockIdRef: String(interviewData?.mockId),
+            correctAns: mockInterviewQuestions[activeQuestionIndex]?.Answer,
+            userAns: userAnswer,
+            feedback: JsonFeedbackResp?.feedback,
+            rating: JsonFeedbackResp?.rating,
+            userEmail: user?.primaryEmailAddress?.emailAddress,
+            createdAt: moment().format("DD-MM-YYYY"),
+            });
+
+            if (resp) {
+            toast.success("Answer saved successfully");
+            setUserAnswer("");
+            setResults([]);
+            }
+        } catch (err) {
+            console.error("UpdateUserAnswer error:", err);
+            toast.error("Failed to process answer. Try again.");
+        } finally {
+            setLoading(false); // ✅ always reset loading, even on error
+        }
+    };
+
 
     return (
     <div className="flex items-center justify-center flex-col">
