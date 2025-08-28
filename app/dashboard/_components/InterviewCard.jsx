@@ -14,20 +14,18 @@ function InterviewCard({interview}) {
     let formattedDate = "N/A";
     if (interview?.createdAt) {
         try {
-        const [day, month, year] = interview.createdAt.split("-"); // "28-08-2025"
-        const dateObj = new Date(`${year}-${month}-${day}T${new Date().toLocaleTimeString("en-US", { hour12: false })}`); 
-        formattedDate = dateObj.toLocaleString("en-US", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-        });
+            const [day, month, year] = interview.createdAt.split("-"); // "28-08-2025"
+            const dateObj = new Date(`${year}-${month}-${day}`);
+            formattedDate = dateObj.toLocaleDateString("en-US", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+            });
         } catch (err) {
-        console.error("Date parse error:", err);
+            console.error("Date parse error:", err);
         }
     }
+
 
     return (
     <div className="border shadow-sm rounded-lg p-3">
